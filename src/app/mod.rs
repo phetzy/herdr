@@ -242,12 +242,10 @@ fn agent_panel_sort_from_config(
     }
 }
 
-fn pane_border_style_from_config(
-    style: crate::config::PaneBorderStyleConfig,
-) -> state::PaneBorderStyle {
+fn border_style_from_config(style: crate::config::BorderStyleConfig) -> state::BorderStyle {
     match style {
-        crate::config::PaneBorderStyleConfig::Plain => state::PaneBorderStyle::Plain,
-        crate::config::PaneBorderStyleConfig::Rounded => state::PaneBorderStyle::Rounded,
+        crate::config::BorderStyleConfig::Plain => state::BorderStyle::Plain,
+        crate::config::BorderStyleConfig::Rounded => state::BorderStyle::Rounded,
     }
 }
 
@@ -640,7 +638,7 @@ impl App {
             prompt_new_workspace_name: config.ui.prompt_new_workspace_name,
             pane_borders: config.ui.pane_borders,
             pane_scrollbars: config.ui.pane_scrollbars,
-            pane_border_style: pane_border_style_from_config(config.ui.pane_border_style),
+            border_style: border_style_from_config(config.ui.border_style),
             pane_gaps: config.ui.pane_gaps,
             show_agent_labels_on_pane_borders: config.ui.show_agent_labels_on_pane_borders,
             hide_tab_bar_when_single_tab: config.ui.hide_tab_bar_when_single_tab,
@@ -1449,8 +1447,7 @@ impl App {
                 self.state.prompt_new_workspace_name = config.ui.prompt_new_workspace_name;
                 self.state.pane_borders = config.ui.pane_borders;
                 self.state.pane_scrollbars = config.ui.pane_scrollbars;
-                self.state.pane_border_style =
-                    pane_border_style_from_config(config.ui.pane_border_style);
+                self.state.border_style = border_style_from_config(config.ui.border_style);
                 self.state.pane_gaps = config.ui.pane_gaps;
                 self.state.show_agent_labels_on_pane_borders =
                     config.ui.show_agent_labels_on_pane_borders;

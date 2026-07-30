@@ -43,7 +43,8 @@ pub(super) fn render_settings_overlay(app: &AppState, frame: &mut Frame, area: R
 
     super::dim_background(frame, area);
 
-    let Some(inner) = render_panel_shell(frame, popup, p.accent, p.panel_bg) else {
+    let Some(inner) = render_panel_shell(frame, popup, p.accent, p.panel_bg, app.border_style)
+    else {
         return;
     };
     if inner.height < 4 || inner.width < 10 {
@@ -454,7 +455,7 @@ fn render_settings_panes(app: &AppState, frame: &mut Frame, area: Rect) {
         &app.palette,
         frame,
         area,
-        "how split pane borders look",
+        "how herdr draws pane and panel borders",
         &rows,
         app.settings.list.selected,
     );
@@ -470,7 +471,7 @@ mod tests {
     fn panes_section_renders_both_pane_toggles() {
         let mut app = AppState::test_new();
         app.show_agent_labels_on_pane_borders = false;
-        app.pane_border_style = crate::app::state::PaneBorderStyle::Rounded;
+        app.border_style = crate::app::state::BorderStyle::Rounded;
         app.settings.section = SettingsSection::Panes;
         app.settings.list.selected = 1;
         app.mode = Mode::Settings;
@@ -490,6 +491,43 @@ mod tests {
             .collect::<String>();
 
         assert!(rendered.contains("agent border labels [ ]"));
-        assert!(rendered.contains("rounded pane borders [✓]"));
+        assert!(rendered.contains("rounded borders [✓]"));
+    }
+
+    #[test]
+    fn modal_chrome_follows_the_configured_border_style() {
+        for (style, corners) in [
+            (crate::app::state::BorderStyle::Plain, ['┌', '┐', '└', '┘']),
+            (
+                crate::app::state::BorderStyle::Rounded,
+                ['╭', '╮', '╰', '╯'],
+            ),
+        ] {
+            let mut app = AppState::test_new();
+            app.border_style = style;
+            app.settings.section = SettingsSection::Panes;
+            app.mode = Mode::Settings;
+
+            let mut terminal =
+                Terminal::new(TestBackend::new(80, 24)).expect("test terminal should initialize");
+            terminal
+                .draw(|frame| render_settings_overlay(&app, frame, Rect::new(0, 0, 80, 24)))
+                .expect("settings overlay should render");
+
+            let rendered = terminal
+                .backend()
+                .buffer()
+                .content()
+                .iter()
+                .map(|cell| cell.symbol())
+                .collect::<String>();
+
+            for corner in corners {
+                assert!(
+                    rendered.contains(corner),
+                    "{style:?} chrome should draw {corner}"
+                );
+            }
+        }
     }
 }

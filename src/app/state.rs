@@ -985,7 +985,7 @@ pub enum AgentPanelSort {
 
 /// Corner glyphs used when drawing split pane borders.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum PaneBorderStyle {
+pub enum BorderStyle {
     #[default]
     Plain,
     Rounded,
@@ -1038,14 +1038,14 @@ impl PaneSetting {
     pub(crate) fn label(self) -> &'static str {
         match self {
             Self::AgentBorderLabels => "agent border labels",
-            Self::RoundedBorders => "rounded pane borders",
+            Self::RoundedBorders => "rounded borders",
         }
     }
 
     pub(crate) fn enabled(self, state: &AppState) -> bool {
         match self {
             Self::AgentBorderLabels => state.agent_border_labels_enabled(),
-            Self::RoundedBorders => state.pane_border_style == PaneBorderStyle::Rounded,
+            Self::RoundedBorders => state.border_style == BorderStyle::Rounded,
         }
     }
 }
@@ -1527,7 +1527,7 @@ pub struct AppState {
     pub prompt_new_workspace_name: bool,
     pub pane_borders: bool,
     pub pane_scrollbars: bool,
-    pub pane_border_style: PaneBorderStyle,
+    pub border_style: BorderStyle,
     pub pane_gaps: bool,
     pub show_agent_labels_on_pane_borders: bool,
     pub hide_tab_bar_when_single_tab: bool,
@@ -1896,7 +1896,7 @@ impl AppState {
             prompt_new_workspace_name: false,
             pane_borders: true,
             pane_scrollbars: true,
-            pane_border_style: PaneBorderStyle::Plain,
+            border_style: BorderStyle::Plain,
             pane_gaps: false,
             show_agent_labels_on_pane_borders: false,
             hide_tab_bar_when_single_tab: false,

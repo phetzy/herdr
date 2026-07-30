@@ -92,18 +92,18 @@ impl App {
         }
     }
 
-    pub(super) fn save_rounded_pane_borders(&mut self, enabled: bool) {
+    pub(super) fn save_rounded_borders(&mut self, enabled: bool) {
         let value = if enabled {
-            crate::config::PaneBorderStyleConfig::Rounded
+            crate::config::BorderStyleConfig::Rounded
         } else {
-            crate::config::PaneBorderStyleConfig::Plain
+            crate::config::BorderStyleConfig::Plain
         }
         .as_str();
-        if self.update_config_file("pane border style", |content| {
+        if self.update_config_file("border style", |content| {
             crate::config::upsert_section_value(
                 content,
                 "ui",
-                "pane_border_style",
+                "border_style",
                 &format!("\"{value}\""),
             )
         }) {

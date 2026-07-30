@@ -108,13 +108,13 @@ impl AgentPanelSortConfig {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
-pub enum PaneBorderStyleConfig {
+pub enum BorderStyleConfig {
     #[default]
     Plain,
     Rounded,
 }
 
-impl PaneBorderStyleConfig {
+impl BorderStyleConfig {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Plain => "plain",
@@ -833,8 +833,8 @@ pub struct UiConfig {
     pub pane_borders: bool,
     /// Draw interactive scrollbars beside terminal panes. Default: true.
     pub pane_scrollbars: bool,
-    /// Corner style for split pane borders. Saved values are "plain" or "rounded". Default: "plain".
-    pub pane_border_style: PaneBorderStyleConfig,
+    /// Corner style for pane borders and panel chrome. Saved values are "plain" or "rounded". Default: "plain".
+    pub border_style: BorderStyleConfig,
     /// Keep split panes visually separated instead of sharing divider borders. Default: true.
     pub pane_gaps: bool,
     /// Show agent labels in split pane borders when no manual pane label is set. Default: false.
@@ -1043,7 +1043,7 @@ impl Default for UiConfig {
             prompt_new_workspace_name: false,
             pane_borders: true,
             pane_scrollbars: true,
-            pane_border_style: PaneBorderStyleConfig::Plain,
+            border_style: BorderStyleConfig::Plain,
             pane_gaps: true,
             show_agent_labels_on_pane_borders: false,
             hide_tab_bar_when_single_tab: false,
@@ -1278,10 +1278,7 @@ agent_panel_scope = "current"
         assert!(default_config.ui.pane_borders);
         assert!(default_config.ui.pane_scrollbars);
         assert!(default_config.ui.pane_gaps);
-        assert_eq!(
-            default_config.ui.pane_border_style,
-            PaneBorderStyleConfig::Plain
-        );
+        assert_eq!(default_config.ui.border_style, BorderStyleConfig::Plain);
         assert!(!default_config.ui.show_agent_labels_on_pane_borders);
         assert!(!default_config.ui.hide_tab_bar_when_single_tab);
         assert_eq!(
@@ -1293,7 +1290,7 @@ agent_panel_scope = "current"
 [ui]
 pane_borders = false
 pane_scrollbars = false
-pane_border_style = "rounded"
+border_style = "rounded"
 pane_gaps = true
 show_agent_labels_on_pane_borders = true
 hide_tab_bar_when_single_tab = true
@@ -1302,7 +1299,7 @@ tab_bar_position = "bottom"
         let config: Config = toml::from_str(toml).unwrap();
         assert!(!config.ui.pane_borders);
         assert!(!config.ui.pane_scrollbars);
-        assert_eq!(config.ui.pane_border_style, PaneBorderStyleConfig::Rounded);
+        assert_eq!(config.ui.border_style, BorderStyleConfig::Rounded);
         assert!(config.ui.pane_gaps);
         assert!(config.ui.show_agent_labels_on_pane_borders);
         assert!(config.ui.hide_tab_bar_when_single_tab);

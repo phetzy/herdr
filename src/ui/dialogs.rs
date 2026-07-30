@@ -52,7 +52,7 @@ pub(super) fn render_rename_overlay(app: &AppState, frame: &mut Frame, area: Rec
         _ => return,
     };
 
-    let Some(inner) = render_modal_shell(frame, area, 56, 7, &app.palette) else {
+    let Some(inner) = render_modal_shell(frame, area, 56, 7, &app.palette, app.border_style) else {
         return;
     };
     if inner.height < 4 {
@@ -241,6 +241,7 @@ pub(super) fn render_new_linked_worktree_overlay(app: &AppState, frame: &mut Fra
         NEW_LINKED_WORKTREE_POPUP_WIDTH,
         NEW_LINKED_WORKTREE_POPUP_HEIGHT,
         &app.palette,
+        app.border_style,
     ) else {
         return;
     };
@@ -333,8 +334,13 @@ pub(super) fn render_remove_worktree_overlay(app: &AppState, frame: &mut Frame, 
     let Some(popup) = remove_worktree_popup_rect(area) else {
         return;
     };
-    let Some(inner) = render_panel_shell(frame, popup, app.palette.red, app.palette.panel_bg)
-    else {
+    let Some(inner) = render_panel_shell(
+        frame,
+        popup,
+        app.palette.red,
+        app.palette.panel_bg,
+        app.border_style,
+    ) else {
         return;
     };
 
@@ -431,7 +437,8 @@ pub(super) fn render_open_existing_worktree_overlay(app: &AppState, frame: &mut 
         .saturating_mul(2)
         .saturating_add(7)
         .clamp(12, 26);
-    let Some(inner) = render_modal_shell(frame, area, 96, height, &app.palette) else {
+    let Some(inner) = render_modal_shell(frame, area, 96, height, &app.palette, app.border_style)
+    else {
         return;
     };
     if inner.height < 8 {
@@ -700,8 +707,13 @@ pub(super) fn render_confirm_close_overlay(
         ),
     ]);
 
-    let Some(inner) = render_panel_shell(frame, popup, app.palette.red, app.palette.panel_bg)
-    else {
+    let Some(inner) = render_panel_shell(
+        frame,
+        popup,
+        app.palette.red,
+        app.palette.panel_bg,
+        app.border_style,
+    ) else {
         return;
     };
 

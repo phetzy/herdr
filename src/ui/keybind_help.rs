@@ -255,7 +255,9 @@ pub(crate) fn keybind_help_lines(app: &AppState) -> Vec<(usize, Line<'static>)> 
 pub(super) fn render_keybind_help_overlay(app: &AppState, frame: &mut Frame) {
     super::dim_background(frame, frame.area());
 
-    let Some(inner) = render_modal_shell(frame, frame.area(), 76, 22, &app.palette) else {
+    let Some(inner) =
+        render_modal_shell(frame, frame.area(), 76, 22, &app.palette, app.border_style)
+    else {
         return;
     };
     if inner.height < 6 || inner.width < 20 {

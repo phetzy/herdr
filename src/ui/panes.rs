@@ -11,7 +11,7 @@ use super::scrollbar::{render_pane_scrollbar, should_show_scrollbar};
 use super::text::display_width;
 use super::text::truncate_end;
 use super::widgets::panel_contrast_fg;
-use crate::app::state::{Palette, PaneBorderStyle};
+use crate::app::state::{BorderStyle, Palette};
 use crate::app::{AppState, Mode};
 use crate::layout::PaneInfo;
 use crate::popup_size::resolve_popup_geometry;
@@ -472,7 +472,7 @@ fn render_pane_borders(
         let focused = pane_infos
             .iter()
             .any(|info| info.is_focused && line_touches_pane(x, y, info, app.pane_gaps));
-        let symbol = line_cell_symbol(line, app.pane_border_style);
+        let symbol = line_cell_symbol(line, app.border_style);
         if symbol.is_empty() {
             continue;
         }
@@ -664,8 +664,8 @@ fn render_pane_border_titles(
     }
 }
 
-fn line_cell_symbol(line: LineCell, style: PaneBorderStyle) -> &'static str {
-    let rounded = style == PaneBorderStyle::Rounded;
+fn line_cell_symbol(line: LineCell, style: BorderStyle) -> &'static str {
+    let rounded = style == BorderStyle::Rounded;
     match (line.up, line.down, line.left, line.right) {
         (true, true, true, true) => "┼",
         (true, true, true, false) => "┤",
@@ -1036,10 +1036,10 @@ mod tests {
     }
 
     #[test]
-    fn rounded_pane_border_style_only_rounds_corners() {
+    fn rounded_border_style_only_rounds_corners() {
         let mut app = AppState::test_new();
         app.mode = Mode::Terminal;
-        app.pane_border_style = PaneBorderStyle::Rounded;
+        app.border_style = BorderStyle::Rounded;
         app.view.terminal_area = Rect::new(0, 0, 8, 3);
         let ws = Workspace::test_new("test");
         let pane_id = ws.tabs[0].root_pane;
@@ -1068,7 +1068,7 @@ mod tests {
     }
 
     #[test]
-    fn plain_pane_border_style_keeps_square_corners() {
+    fn plain_border_style_keeps_square_corners() {
         let mut app = AppState::test_new();
         app.mode = Mode::Terminal;
         app.view.terminal_area = Rect::new(0, 0, 8, 3);
@@ -1104,14 +1104,14 @@ mod tests {
             left: true,
             right: true,
         };
-        assert_eq!(line_cell_symbol(plus, PaneBorderStyle::Rounded), "┼");
+        assert_eq!(line_cell_symbol(plus, BorderStyle::Rounded), "┼");
         let tee = LineCell {
             up: false,
             down: true,
             left: true,
             right: true,
         };
-        assert_eq!(line_cell_symbol(tee, PaneBorderStyle::Rounded), "┬");
+        assert_eq!(line_cell_symbol(tee, BorderStyle::Rounded), "┬");
     }
 
     #[test]

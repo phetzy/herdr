@@ -406,8 +406,8 @@ impl App {
                         SettingsAction::SaveAgentBorderLabels(enabled) => {
                             self.save_agent_border_labels(enabled)
                         }
-                        SettingsAction::SaveRoundedPaneBorders(enabled) => {
-                            self.save_rounded_pane_borders(enabled)
+                        SettingsAction::SaveRoundedBorders(enabled) => {
+                            self.save_rounded_borders(enabled)
                         }
                         SettingsAction::InstallRecommendedIntegrations => {
                             self.install_recommended_integrations()

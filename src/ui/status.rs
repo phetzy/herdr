@@ -9,7 +9,7 @@ use ratatui::{
 use super::text::display_width_u16;
 use super::widgets::panel_contrast_fg;
 use crate::{
-    app::state::{CopyFeedback, Palette, ToastKind, ToastNotification},
+    app::state::{BorderStyle, CopyFeedback, Palette, ToastKind, ToastNotification},
     config::{ToastClipboardPosition, ToastHerdrPosition},
     detect::AgentState,
 };
@@ -86,6 +86,7 @@ pub(super) fn render_toast_notification(
     offset_for_warning: bool,
     position: ToastHerdrPosition,
     p: &Palette,
+    style: BorderStyle,
 ) {
     let dot_color = match toast.kind {
         ToastKind::NeedsAttention => p.red,
@@ -97,6 +98,7 @@ pub(super) fn render_toast_notification(
     frame.render_widget(Clear, toast_area);
     let block = Block::default()
         .borders(Borders::ALL)
+        .border_set(super::widgets::border_set(style))
         .border_style(Style::default().fg(p.overlay0))
         .style(Style::default().bg(p.panel_bg));
     let inner = block.inner(toast_area);
@@ -135,6 +137,7 @@ pub(super) fn render_copy_feedback(
     offset_rows: u16,
     position: ToastClipboardPosition,
     p: &Palette,
+    style: BorderStyle,
 ) {
     let feedback_area = copy_feedback_rect(area, feedback, offset_rows, position);
     if feedback_area.is_empty() {
@@ -144,6 +147,7 @@ pub(super) fn render_copy_feedback(
     frame.render_widget(Clear, feedback_area);
     let block = Block::default()
         .borders(Borders::ALL)
+        .border_set(super::widgets::border_set(style))
         .border_style(Style::default().fg(p.green))
         .style(Style::default().bg(p.panel_bg));
     let inner = block.inner(feedback_area);

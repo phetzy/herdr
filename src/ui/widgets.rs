@@ -6,13 +6,22 @@ use ratatui::{
     Frame,
 };
 
-use crate::app::state::Palette;
+use crate::app::state::{BorderStyle, Palette};
+
+/// Box-drawing set every framed surface draws with, so panes and chrome agree.
+pub(super) fn border_set(style: BorderStyle) -> ratatui::symbols::border::Set<'static> {
+    match style {
+        BorderStyle::Plain => ratatui::symbols::border::PLAIN,
+        BorderStyle::Rounded => ratatui::symbols::border::ROUNDED,
+    }
+}
 
 pub(super) fn render_panel_shell(
     frame: &mut Frame,
     area: Rect,
     border_color: Color,
     bg: Color,
+    style: BorderStyle,
 ) -> Option<Rect> {
     if area.width < 2 || area.height < 2 {
         return None;
@@ -21,7 +30,7 @@ pub(super) fn render_panel_shell(
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(Style::default().fg(border_color))
-        .border_set(ratatui::symbols::border::PLAIN)
+        .border_set(border_set(style))
         .style(Style::default().bg(bg));
     let inner = block.inner(area);
     frame.render_widget(Clear, area);
@@ -54,9 +63,10 @@ pub(super) fn render_modal_shell(
     popup_w: u16,
     popup_h: u16,
     p: &Palette,
+    style: BorderStyle,
 ) -> Option<Rect> {
     let popup = centered_popup_rect(area, popup_w, popup_h)?;
-    render_panel_shell(frame, popup, p.accent, p.panel_bg)
+    render_panel_shell(frame, popup, p.accent, p.panel_bg, style)
 }
 
 pub(super) fn render_modal_header(frame: &mut Frame, area: Rect, title: &str, p: &Palette) {

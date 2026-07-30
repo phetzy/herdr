@@ -17,7 +17,7 @@ pub(super) enum SettingsAction {
     SaveSound(bool),
     SaveToastDelivery(ToastDelivery),
     SaveAgentBorderLabels(bool),
-    SaveRoundedPaneBorders(bool),
+    SaveRoundedBorders(bool),
     InstallRecommendedIntegrations,
 }
 
@@ -27,7 +27,7 @@ fn pane_toggle_action(state: &AppState, idx: usize) -> Option<SettingsAction> {
         PaneSetting::AgentBorderLabels => Some(SettingsAction::SaveAgentBorderLabels(
             !PaneSetting::AgentBorderLabels.enabled(state),
         )),
-        PaneSetting::RoundedBorders => Some(SettingsAction::SaveRoundedPaneBorders(
+        PaneSetting::RoundedBorders => Some(SettingsAction::SaveRoundedBorders(
             !PaneSetting::RoundedBorders.enabled(state),
         )),
     }
@@ -44,9 +44,7 @@ impl App {
                 SettingsAction::SaveAgentBorderLabels(enabled) => {
                     self.save_agent_border_labels(enabled)
                 }
-                SettingsAction::SaveRoundedPaneBorders(enabled) => {
-                    self.save_rounded_pane_borders(enabled)
-                }
+                SettingsAction::SaveRoundedBorders(enabled) => self.save_rounded_borders(enabled),
                 SettingsAction::InstallRecommendedIntegrations => {
                     self.install_recommended_integrations()
                 }
@@ -544,7 +542,7 @@ mod tests {
     #[test]
     fn settings_panes_down_then_toggle_switches_rounded_borders() {
         let mut state = state_with_workspaces(&["test"]);
-        state.pane_border_style = crate::app::state::PaneBorderStyle::Plain;
+        state.border_style = crate::app::state::BorderStyle::Plain;
         open_settings_at(&mut state, SettingsSection::Panes);
 
         update_settings_state(
@@ -558,14 +556,14 @@ mod tests {
             KeyEvent::new(KeyCode::Enter, KeyModifiers::empty()),
         );
 
-        assert_eq!(action, Some(SettingsAction::SaveRoundedPaneBorders(true)));
+        assert_eq!(action, Some(SettingsAction::SaveRoundedBorders(true)));
         assert_eq!(state.mode, Mode::Settings);
     }
 
     #[test]
-    fn settings_mouse_click_toggles_rounded_pane_borders_row() {
+    fn settings_mouse_click_toggles_rounded_borders_row() {
         let mut app = app_for_mouse_test();
-        app.state.pane_border_style = crate::app::state::PaneBorderStyle::Rounded;
+        app.state.border_style = crate::app::state::BorderStyle::Rounded;
         open_settings_at(&mut app.state, SettingsSection::Panes);
 
         let area = app.state.settings_content_rect();
@@ -575,7 +573,7 @@ mod tests {
             area.y + 4,
         ));
 
-        assert_eq!(action, Some(SettingsAction::SaveRoundedPaneBorders(false)));
+        assert_eq!(action, Some(SettingsAction::SaveRoundedBorders(false)));
         assert_eq!(app.state.settings.list.selected, 1);
     }
 
