@@ -242,6 +242,15 @@ fn agent_panel_sort_from_config(
     }
 }
 
+fn pane_border_style_from_config(
+    style: crate::config::PaneBorderStyleConfig,
+) -> state::PaneBorderStyle {
+    match style {
+        crate::config::PaneBorderStyleConfig::Plain => state::PaneBorderStyle::Plain,
+        crate::config::PaneBorderStyleConfig::Rounded => state::PaneBorderStyle::Rounded,
+    }
+}
+
 /// Parse the configured agent name list into a deduplicated set of `Agent`
 /// values. Unknown agent names are silently dropped so a typo cannot disable
 /// other valid entries.
@@ -631,6 +640,7 @@ impl App {
             prompt_new_workspace_name: config.ui.prompt_new_workspace_name,
             pane_borders: config.ui.pane_borders,
             pane_scrollbars: config.ui.pane_scrollbars,
+            pane_border_style: pane_border_style_from_config(config.ui.pane_border_style),
             pane_gaps: config.ui.pane_gaps,
             show_agent_labels_on_pane_borders: config.ui.show_agent_labels_on_pane_borders,
             hide_tab_bar_when_single_tab: config.ui.hide_tab_bar_when_single_tab,
@@ -1439,6 +1449,8 @@ impl App {
                 self.state.prompt_new_workspace_name = config.ui.prompt_new_workspace_name;
                 self.state.pane_borders = config.ui.pane_borders;
                 self.state.pane_scrollbars = config.ui.pane_scrollbars;
+                self.state.pane_border_style =
+                    pane_border_style_from_config(config.ui.pane_border_style);
                 self.state.pane_gaps = config.ui.pane_gaps;
                 self.state.show_agent_labels_on_pane_borders =
                     config.ui.show_agent_labels_on_pane_borders;

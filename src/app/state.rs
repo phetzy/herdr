@@ -983,6 +983,14 @@ pub enum AgentPanelSort {
     Priority,
 }
 
+/// Corner glyphs used when drawing split pane borders.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum PaneBorderStyle {
+    #[default]
+    Plain,
+    Rounded,
+}
+
 // ---------------------------------------------------------------------------
 // Settings UI state
 // ---------------------------------------------------------------------------
@@ -1494,6 +1502,7 @@ pub struct AppState {
     pub prompt_new_workspace_name: bool,
     pub pane_borders: bool,
     pub pane_scrollbars: bool,
+    pub pane_border_style: PaneBorderStyle,
     pub pane_gaps: bool,
     pub show_agent_labels_on_pane_borders: bool,
     pub hide_tab_bar_when_single_tab: bool,
@@ -1862,6 +1871,7 @@ impl AppState {
             prompt_new_workspace_name: false,
             pane_borders: true,
             pane_scrollbars: true,
+            pane_border_style: PaneBorderStyle::Plain,
             pane_gaps: false,
             show_agent_labels_on_pane_borders: false,
             hide_tab_bar_when_single_tab: false,

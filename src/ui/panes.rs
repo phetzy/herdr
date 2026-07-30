@@ -11,7 +11,7 @@ use super::scrollbar::{render_pane_scrollbar, should_show_scrollbar};
 use super::text::display_width;
 use super::text::truncate_end;
 use super::widgets::panel_contrast_fg;
-use crate::app::state::Palette;
+use crate::app::state::{Palette, PaneBorderStyle};
 use crate::app::{AppState, Mode};
 use crate::layout::PaneInfo;
 use crate::popup_size::resolve_popup_geometry;
@@ -472,7 +472,7 @@ fn render_pane_borders(
         let focused = pane_infos
             .iter()
             .any(|info| info.is_focused && line_touches_pane(x, y, info, app.pane_gaps));
-        let symbol = line_cell_symbol(line);
+        let symbol = line_cell_symbol(line, app.pane_border_style);
         if symbol.is_empty() {
             continue;
         }
@@ -664,7 +664,8 @@ fn render_pane_border_titles(
     }
 }
 
-fn line_cell_symbol(line: LineCell) -> &'static str {
+fn line_cell_symbol(line: LineCell, style: PaneBorderStyle) -> &'static str {
+    let rounded = style == PaneBorderStyle::Rounded;
     match (line.up, line.down, line.left, line.right) {
         (true, true, true, true) => "┼",
         (true, true, true, false) => "┤",
@@ -677,10 +678,34 @@ fn line_cell_symbol(line: LineCell) -> &'static str {
         (false, false, true, true) | (false, false, true, false) | (false, false, false, true) => {
             "─"
         }
-        (false, true, false, true) => "┌",
-        (false, true, true, false) => "┐",
-        (true, false, false, true) => "└",
-        (true, false, true, false) => "┘",
+        (false, true, false, true) => {
+            if rounded {
+                "╭"
+            } else {
+                "┌"
+            }
+        }
+        (false, true, true, false) => {
+            if rounded {
+                "╮"
+            } else {
+                "┐"
+            }
+        }
+        (true, false, false, true) => {
+            if rounded {
+                "╰"
+            } else {
+                "└"
+            }
+        }
+        (true, false, true, false) => {
+            if rounded {
+                "╯"
+            } else {
+                "┘"
+            }
+        }
         _ => "",
     }
 }
@@ -1008,6 +1033,85 @@ mod tests {
 
         assert_eq!(title, " 1 模块… ");
         assert!(display_width(title.as_str()) <= 10);
+    }
+
+    #[test]
+    fn rounded_pane_border_style_only_rounds_corners() {
+        let mut app = AppState::test_new();
+        app.mode = Mode::Terminal;
+        app.pane_border_style = PaneBorderStyle::Rounded;
+        app.view.terminal_area = Rect::new(0, 0, 8, 3);
+        let ws = Workspace::test_new("test");
+        let pane_id = ws.tabs[0].root_pane;
+        app.view.pane_infos = vec![PaneInfo {
+            id: pane_id,
+            rect: Rect::new(0, 0, 8, 3),
+            inner_rect: Rect::default(),
+            scrollbar_rect: None,
+            borders: Borders::ALL,
+            is_focused: false,
+        }];
+
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(8, 3)).unwrap();
+        terminal
+            .draw(|frame| render_view_pane_borders(&app, &ws, frame))
+            .unwrap();
+
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(0, 0)].symbol(), "╭");
+        assert_eq!(buffer[(7, 0)].symbol(), "╮");
+        assert_eq!(buffer[(0, 2)].symbol(), "╰");
+        assert_eq!(buffer[(7, 2)].symbol(), "╯");
+        assert_eq!(buffer[(3, 0)].symbol(), "─");
+        assert_eq!(buffer[(0, 1)].symbol(), "│");
+    }
+
+    #[test]
+    fn plain_pane_border_style_keeps_square_corners() {
+        let mut app = AppState::test_new();
+        app.mode = Mode::Terminal;
+        app.view.terminal_area = Rect::new(0, 0, 8, 3);
+        let ws = Workspace::test_new("test");
+        let pane_id = ws.tabs[0].root_pane;
+        app.view.pane_infos = vec![PaneInfo {
+            id: pane_id,
+            rect: Rect::new(0, 0, 8, 3),
+            inner_rect: Rect::default(),
+            scrollbar_rect: None,
+            borders: Borders::ALL,
+            is_focused: false,
+        }];
+
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(8, 3)).unwrap();
+        terminal
+            .draw(|frame| render_view_pane_borders(&app, &ws, frame))
+            .unwrap();
+
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(0, 0)].symbol(), "┌");
+        assert_eq!(buffer[(7, 0)].symbol(), "┐");
+        assert_eq!(buffer[(0, 2)].symbol(), "└");
+        assert_eq!(buffer[(7, 2)].symbol(), "┘");
+    }
+
+    #[test]
+    fn shared_divider_junctions_stay_square_when_rounded() {
+        let plus = LineCell {
+            up: true,
+            down: true,
+            left: true,
+            right: true,
+        };
+        assert_eq!(line_cell_symbol(plus, PaneBorderStyle::Rounded), "┼");
+        let tee = LineCell {
+            up: false,
+            down: true,
+            left: true,
+            right: true,
+        };
+        assert_eq!(line_cell_symbol(tee, PaneBorderStyle::Rounded), "┬");
     }
 
     #[test]

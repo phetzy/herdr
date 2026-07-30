@@ -659,6 +659,16 @@
           "description": "Draw interactive scrollbars beside terminal panes. Disable to reclaim the scrollbar column and keep it out of terminal-native selections."
         },
         {
+          "key": "ui.pane_border_style",
+          "type": "enum",
+          "default": "\"plain\"",
+          "description": "Corner style for split pane borders. Shared divider junctions stay square.",
+          "values": [
+            "plain",
+            "rounded"
+          ]
+        },
+        {
           "key": "ui.pane_gaps",
           "type": "boolean",
           "default": "true",
