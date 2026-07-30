@@ -114,6 +114,15 @@ pub enum PaneBorderStyleConfig {
     Rounded,
 }
 
+impl PaneBorderStyleConfig {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Plain => "plain",
+            Self::Rounded => "rounded",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum HostCursorModeConfig {

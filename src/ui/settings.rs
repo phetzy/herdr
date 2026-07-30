@@ -11,7 +11,10 @@ use super::widgets::{
     render_action_button, render_modal_choice_list, render_panel_shell, ActionButtonSpec,
 };
 use crate::{
-    app::{state::Palette, AppState},
+    app::{
+        state::{Palette, PaneSetting},
+        AppState,
+    },
     config::ToastDelivery,
 };
 
@@ -135,16 +138,8 @@ pub(super) fn render_settings_overlay(app: &AppState, frame: &mut Frame, area: R
                 2,
             );
         }
-        SettingsSection::PaneLabels => {
-            render_settings_toggle(
-                frame,
-                content_area,
-                p,
-                "agent border labels",
-                "show detected agent names in split pane borders",
-                app.agent_border_labels_enabled(),
-                app.settings.list.selected,
-            );
+        SettingsSection::Panes => {
+            render_settings_panes(app, frame, content_area);
         }
         SettingsSection::Integrations => {
             render_settings_integrations(app, frame, content_area);
@@ -405,4 +400,96 @@ fn render_settings_toggle(
         p,
         1,
     );
+}
+
+/// Render a checkbox row per setting, highlighting the selected row.
+fn render_settings_toggle_rows(
+    p: &Palette,
+    frame: &mut Frame,
+    area: Rect,
+    description: &str,
+    rows: &[(&str, bool)],
+    selected_idx: usize,
+) {
+    let [desc_area, _, list_area] = Layout::vertical([
+        Constraint::Length(2),
+        Constraint::Length(1),
+        Constraint::Min(1),
+    ])
+    .areas::<3>(area);
+
+    super::widgets::render_modal_description(
+        frame,
+        desc_area,
+        description,
+        Style::default().fg(p.overlay1),
+    );
+
+    for (idx, (label, enabled)) in rows.iter().enumerate() {
+        let marker = if *enabled { "[✓]" } else { "[ ]" };
+        let style = if selected_idx == idx {
+            Style::default()
+                .bg(p.surface0)
+                .fg(p.text)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(p.subtext0)
+        };
+        let row = Rect::new(list_area.x, list_area.y + idx as u16, list_area.width, 1);
+        frame.render_widget(
+            Paragraph::new(format!(" {label} {marker}")).style(style),
+            row,
+        );
+    }
+}
+
+fn render_settings_panes(app: &AppState, frame: &mut Frame, area: Rect) {
+    let rows: Vec<(&str, bool)> = PaneSetting::ALL
+        .iter()
+        .copied()
+        .map(|setting| (setting.label(), setting.enabled(app)))
+        .collect();
+
+    render_settings_toggle_rows(
+        &app.palette,
+        frame,
+        area,
+        "how split pane borders look",
+        &rows,
+        app.settings.list.selected,
+    );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::{state::SettingsSection, Mode};
+    use ratatui::{backend::TestBackend, Terminal};
+
+    #[test]
+    fn panes_section_renders_both_pane_toggles() {
+        let mut app = AppState::test_new();
+        app.show_agent_labels_on_pane_borders = false;
+        app.pane_border_style = crate::app::state::PaneBorderStyle::Rounded;
+        app.settings.section = SettingsSection::Panes;
+        app.settings.list.selected = 1;
+        app.mode = Mode::Settings;
+
+        let mut terminal =
+            Terminal::new(TestBackend::new(80, 24)).expect("test terminal should initialize");
+        terminal
+            .draw(|frame| render_settings_overlay(&app, frame, Rect::new(0, 0, 80, 24)))
+            .expect("settings overlay should render");
+
+        let rendered = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect::<String>();
+
+        assert!(rendered.contains("agent border labels [ ]"));
+        assert!(rendered.contains("rounded pane borders [✓]"));
+    }
 }

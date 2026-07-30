@@ -3,7 +3,7 @@ use ratatui::layout::Rect;
 
 use crate::{
     app::{
-        state::{AppState, SettingsSection, THEME_NAMES},
+        state::{AppState, PaneSetting, SettingsSection, THEME_NAMES},
         App, Mode,
     },
     config::ToastDelivery,
@@ -17,7 +17,20 @@ pub(super) enum SettingsAction {
     SaveSound(bool),
     SaveToastDelivery(ToastDelivery),
     SaveAgentBorderLabels(bool),
+    SaveRoundedPaneBorders(bool),
     InstallRecommendedIntegrations,
+}
+
+/// Map a Panes row index to the toggle action that flips it.
+fn pane_toggle_action(state: &AppState, idx: usize) -> Option<SettingsAction> {
+    match PaneSetting::ALL.get(idx).copied()? {
+        PaneSetting::AgentBorderLabels => Some(SettingsAction::SaveAgentBorderLabels(
+            !PaneSetting::AgentBorderLabels.enabled(state),
+        )),
+        PaneSetting::RoundedBorders => Some(SettingsAction::SaveRoundedPaneBorders(
+            !PaneSetting::RoundedBorders.enabled(state),
+        )),
+    }
 }
 
 impl App {
@@ -30,6 +43,9 @@ impl App {
                 SettingsAction::SaveToastDelivery(delivery) => self.save_toast_delivery(delivery),
                 SettingsAction::SaveAgentBorderLabels(enabled) => {
                     self.save_agent_border_labels(enabled)
+                }
+                SettingsAction::SaveRoundedPaneBorders(enabled) => {
+                    self.save_rounded_pane_borders(enabled)
                 }
                 SettingsAction::InstallRecommendedIntegrations => {
                     self.install_recommended_integrations()
@@ -194,8 +210,8 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
                 state.settings.list.selected = usize::from(!state.sound_enabled());
             }
             KeyCode::Tab | KeyCode::Right | KeyCode::Char('l') => {
-                state.settings.section = SettingsSection::PaneLabels;
-                state.settings.list.selected = usize::from(!state.agent_border_labels_enabled());
+                state.settings.section = SettingsSection::Panes;
+                state.settings.list.selected = 0;
             }
             _ => {
                 if let Some(super::modal::ModalAction::Close) =
@@ -205,13 +221,13 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
                 }
             }
         },
-        SettingsSection::PaneLabels => match key.code {
-            KeyCode::Up | KeyCode::Char('k') | KeyCode::Down | KeyCode::Char('j') => {
-                state.settings.list.selected = 1 - state.settings.list.selected.min(1);
+        SettingsSection::Panes => match key.code {
+            KeyCode::Up | KeyCode::Char('k') => state.settings.list.move_prev(),
+            KeyCode::Down | KeyCode::Char('j') => {
+                state.settings.list.move_next(PaneSetting::ALL.len())
             }
             KeyCode::Enter | KeyCode::Char(' ') => {
-                let enabled = state.settings.list.selected == 0;
-                return Some(SettingsAction::SaveAgentBorderLabels(enabled));
+                return pane_toggle_action(state, state.settings.list.selected);
             }
             KeyCode::BackTab | KeyCode::Left | KeyCode::Char('h') => {
                 state.settings.section = SettingsSection::Toast;
@@ -234,8 +250,8 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
                 return Some(SettingsAction::InstallRecommendedIntegrations);
             }
             KeyCode::BackTab | KeyCode::Left | KeyCode::Char('h') => {
-                state.settings.section = SettingsSection::PaneLabels;
-                state.settings.list.selected = usize::from(!state.agent_border_labels_enabled());
+                state.settings.section = SettingsSection::Panes;
+                state.settings.list.selected = 0;
             }
             KeyCode::Tab | KeyCode::Right | KeyCode::Char('l') => {
                 state.settings.section = SettingsSection::Theme;
@@ -265,7 +281,7 @@ pub(crate) fn open_settings_at(state: &mut AppState, section: SettingsSection) {
         SettingsSection::Theme => current_theme_index(&state.theme_name),
         SettingsSection::Sound => usize::from(!state.sound_enabled()),
         SettingsSection::Toast => toast_delivery_index(state.toast_delivery()),
-        SettingsSection::PaneLabels => usize::from(!state.agent_border_labels_enabled()),
+        SettingsSection::Panes => 0,
         SettingsSection::Integrations => 0,
     };
     state.mode = Mode::Settings;
@@ -352,9 +368,9 @@ impl AppState {
                     None
                 }
             }
-            SettingsSection::PaneLabels => {
+            SettingsSection::Panes => {
                 let list_y = area.y + 3;
-                if row >= list_y && row < list_y + 2 {
+                if row >= list_y && row < list_y + PaneSetting::ALL.len() as u16 {
                     Some((row - list_y) as usize)
                 } else {
                     None
@@ -373,9 +389,7 @@ impl AppState {
                         SettingsSection::Theme => current_theme_index(&self.theme_name),
                         SettingsSection::Sound => usize::from(!self.sound_enabled()),
                         SettingsSection::Toast => toast_delivery_index(self.toast_delivery()),
-                        SettingsSection::PaneLabels => {
-                            usize::from(!self.agent_border_labels_enabled())
-                        }
+                        SettingsSection::Panes => 0,
                         SettingsSection::Integrations => 0,
                     });
                     return None;
@@ -395,10 +409,7 @@ impl AppState {
                             let delivery = toast_delivery_for_index(idx);
                             Some(SettingsAction::SaveToastDelivery(delivery))
                         }
-                        SettingsSection::PaneLabels => {
-                            let enabled = idx == 0;
-                            Some(SettingsAction::SaveAgentBorderLabels(enabled))
-                        }
+                        SettingsSection::Panes => pane_toggle_action(self, idx),
                         SettingsSection::Integrations => None,
                     };
                 }
@@ -488,7 +499,7 @@ mod tests {
     #[test]
     fn settings_tab_cycle_wraps_after_integrations() {
         let mut state = state_with_workspaces(&["test"]);
-        open_settings_at(&mut state, SettingsSection::PaneLabels);
+        open_settings_at(&mut state, SettingsSection::Panes);
 
         update_settings_state(
             &mut state,
@@ -512,7 +523,60 @@ mod tests {
             &mut state,
             KeyEvent::new(KeyCode::BackTab, KeyModifiers::empty()),
         );
-        assert_eq!(state.settings.section, SettingsSection::PaneLabels);
+        assert_eq!(state.settings.section, SettingsSection::Panes);
+    }
+
+    #[test]
+    fn settings_panes_first_row_toggles_agent_border_labels() {
+        let mut state = state_with_workspaces(&["test"]);
+        state.show_agent_labels_on_pane_borders = false;
+        open_settings_at(&mut state, SettingsSection::Panes);
+
+        let action = update_settings_state(
+            &mut state,
+            KeyEvent::new(KeyCode::Enter, KeyModifiers::empty()),
+        );
+
+        assert_eq!(action, Some(SettingsAction::SaveAgentBorderLabels(true)));
+        assert_eq!(state.mode, Mode::Settings);
+    }
+
+    #[test]
+    fn settings_panes_down_then_toggle_switches_rounded_borders() {
+        let mut state = state_with_workspaces(&["test"]);
+        state.pane_border_style = crate::app::state::PaneBorderStyle::Plain;
+        open_settings_at(&mut state, SettingsSection::Panes);
+
+        update_settings_state(
+            &mut state,
+            KeyEvent::new(KeyCode::Down, KeyModifiers::empty()),
+        );
+        assert_eq!(state.settings.list.selected, 1);
+
+        let action = update_settings_state(
+            &mut state,
+            KeyEvent::new(KeyCode::Enter, KeyModifiers::empty()),
+        );
+
+        assert_eq!(action, Some(SettingsAction::SaveRoundedPaneBorders(true)));
+        assert_eq!(state.mode, Mode::Settings);
+    }
+
+    #[test]
+    fn settings_mouse_click_toggles_rounded_pane_borders_row() {
+        let mut app = app_for_mouse_test();
+        app.state.pane_border_style = crate::app::state::PaneBorderStyle::Rounded;
+        open_settings_at(&mut app.state, SettingsSection::Panes);
+
+        let area = app.state.settings_content_rect();
+        let action = app.state.handle_settings_mouse(mouse(
+            MouseEventKind::Down(crossterm::event::MouseButton::Left),
+            area.x + 2,
+            area.y + 4,
+        ));
+
+        assert_eq!(action, Some(SettingsAction::SaveRoundedPaneBorders(false)));
+        assert_eq!(app.state.settings.list.selected, 1);
     }
 
     #[test]

@@ -92,6 +92,25 @@ impl App {
         }
     }
 
+    pub(super) fn save_rounded_pane_borders(&mut self, enabled: bool) {
+        let value = if enabled {
+            crate::config::PaneBorderStyleConfig::Rounded
+        } else {
+            crate::config::PaneBorderStyleConfig::Plain
+        }
+        .as_str();
+        if self.update_config_file("pane border style", |content| {
+            crate::config::upsert_section_value(
+                content,
+                "ui",
+                "pane_border_style",
+                &format!("\"{value}\""),
+            )
+        }) {
+            self.apply_config_from_disk(false);
+        }
+    }
+
     pub(super) fn save_agent_panel_sort(&mut self, sort: crate::app::state::AgentPanelSort) {
         let value = match sort {
             crate::app::state::AgentPanelSort::Spaces => {

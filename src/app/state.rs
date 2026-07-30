@@ -1001,7 +1001,7 @@ pub enum SettingsSection {
     Theme,
     Sound,
     Toast,
-    PaneLabels,
+    Panes,
     Integrations,
 }
 
@@ -1010,7 +1010,7 @@ impl SettingsSection {
         Self::Theme,
         Self::Sound,
         Self::Toast,
-        Self::PaneLabels,
+        Self::Panes,
         Self::Integrations,
     ];
 
@@ -1019,8 +1019,33 @@ impl SettingsSection {
             Self::Theme => "theme",
             Self::Sound => "sound",
             Self::Toast => "toasts",
-            Self::PaneLabels => "pane labels",
+            Self::Panes => "panes",
             Self::Integrations => "integrations",
+        }
+    }
+}
+
+/// Rows in the panes settings section.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum PaneSetting {
+    AgentBorderLabels,
+    RoundedBorders,
+}
+
+impl PaneSetting {
+    pub(crate) const ALL: [Self; 2] = [Self::AgentBorderLabels, Self::RoundedBorders];
+
+    pub(crate) fn label(self) -> &'static str {
+        match self {
+            Self::AgentBorderLabels => "agent border labels",
+            Self::RoundedBorders => "rounded pane borders",
+        }
+    }
+
+    pub(crate) fn enabled(self, state: &AppState) -> bool {
+        match self {
+            Self::AgentBorderLabels => state.agent_border_labels_enabled(),
+            Self::RoundedBorders => state.pane_border_style == PaneBorderStyle::Rounded,
         }
     }
 }
