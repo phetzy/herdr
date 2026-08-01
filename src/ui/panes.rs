@@ -981,6 +981,7 @@ pub(super) fn render_empty(app: &AppState, frame: &mut Frame, area: Rect) {
         Paragraph::new(lines).block(
             Block::default()
                 .borders(Borders::ALL)
+                .border_set(super::widgets::border_set(app.border_style))
                 .border_style(Style::default().fg(p.surface_dim)),
         ),
         area,
