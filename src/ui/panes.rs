@@ -426,6 +426,7 @@ pub(super) fn render_popup_pane(
         .unwrap_or("popup");
     let block = Block::default()
         .borders(Borders::ALL)
+        .border_set(super::widgets::border_set(app.border_style))
         .border_style(Style::default().fg(app.palette.accent))
         .title(pane_border_title(title, outer.width, true).unwrap_or_default())
         .style(Style::default().bg(app.palette.panel_bg));
