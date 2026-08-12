@@ -87,6 +87,21 @@ fn shrink_for_one_cell_gap(size: u16) -> u16 {
     }
 }
 
+const SINGLE_PANE_PADDING: u16 = 1;
+
+pub(crate) fn pad_single_pane(rect: Rect) -> Rect {
+    let inset = SINGLE_PANE_PADDING;
+    if rect.width <= inset * 2 || rect.height <= inset * 2 {
+        return rect;
+    }
+    Rect::new(
+        rect.x + inset,
+        rect.y + inset,
+        rect.width - inset * 2,
+        rect.height - inset * 2,
+    )
+}
+
 pub(crate) fn apply_pane_chrome(
     panes: Vec<PaneInfo>,
     pane_borders: bool,
@@ -99,6 +114,10 @@ pub(crate) fn apply_pane_chrome(
         .map(|mut info| {
             let right_neighbor = multi_pane.then(|| pane_to_right(&info, &panes)).flatten();
             let below_neighbor = multi_pane.then(|| pane_below(&info, &panes)).flatten();
+
+            if !multi_pane {
+                info.rect = pad_single_pane(info.rect);
+            }
 
             if multi_pane && pane_gaps && !pane_borders {
                 if right_neighbor.is_some() {
@@ -184,7 +203,12 @@ pub(super) fn resize_tab_panes(
             } else {
                 Borders::NONE
             };
-            let pane_inner = pane_inner_rect(area, borders);
+            let pane_area = if multi_pane {
+                area
+            } else {
+                pad_single_pane(area)
+            };
+            let pane_inner = pane_inner_rect(pane_area, borders);
             let inner_rect = stable_terminal_inner_rect(pane_inner, app.pane_scrollbars);
             if !app.direct_attach_resize_locks.contains(terminal_id) {
                 rt.resize(
@@ -239,7 +263,12 @@ pub(super) fn compute_pane_infos(
         } else {
             Borders::NONE
         };
-        let pane_inner = pane_inner_rect(area, borders);
+        let pane_area = if multi_pane {
+            area
+        } else {
+            pad_single_pane(area)
+        };
+        let pane_inner = pane_inner_rect(pane_area, borders);
         let mut inner_rect = pane_inner;
         let mut scrollbar_rect = None;
         if let Some(rt) = app.runtime_for_pane_in_workspace(terminal_runtimes, ws_idx, focused_id) {
@@ -260,7 +289,7 @@ pub(super) fn compute_pane_infos(
         }
         return vec![PaneInfo {
             id: focused_id,
-            rect: area,
+            rect: pane_area,
             inner_rect,
             scrollbar_rect,
             borders,
@@ -1029,6 +1058,59 @@ mod tests {
         assert_eq!(pane_border_title("abcdef", 4, false), None);
     }
 
+    fn test_pane_info(id: PaneId, rect: Rect) -> PaneInfo {
+        PaneInfo {
+            id,
+            rect,
+            inner_rect: Rect::default(),
+            scrollbar_rect: None,
+            borders: Borders::NONE,
+            is_focused: true,
+        }
+    }
+
+    #[test]
+    fn unsplit_pane_is_padded_on_all_sides() {
+        let ws = Workspace::test_new("test");
+        let pane_id = ws.tabs[0].root_pane;
+
+        let padded = apply_pane_chrome(
+            vec![test_pane_info(pane_id, Rect::new(0, 0, 80, 24))],
+            true,
+            true,
+        );
+
+        assert_eq!(padded[0].rect, Rect::new(1, 1, 78, 22));
+        assert_eq!(padded[0].borders, Borders::NONE);
+    }
+
+    #[test]
+    fn unsplit_pane_keeps_rect_when_too_small_to_pad() {
+        let ws = Workspace::test_new("test");
+        let pane_id = ws.tabs[0].root_pane;
+        let rect = Rect::new(0, 0, 2, 2);
+
+        let padded = apply_pane_chrome(vec![test_pane_info(pane_id, rect)], true, true);
+
+        assert_eq!(padded[0].rect, rect);
+    }
+
+    #[test]
+    fn split_panes_are_not_padded() {
+        let ws = Workspace::test_new("test");
+        let left = ws.tabs[0].root_pane;
+        let right = PaneId::alloc();
+        let panes = vec![
+            test_pane_info(left, Rect::new(0, 0, 40, 24)),
+            test_pane_info(right, Rect::new(40, 0, 40, 24)),
+        ];
+
+        let chromed = apply_pane_chrome(panes, true, false);
+
+        assert_eq!(chromed[0].rect, Rect::new(0, 0, 40, 24));
+        assert_eq!(chromed[1].rect, Rect::new(40, 0, 40, 24));
+    }
+
     #[test]
     fn pane_border_title_truncates_cjk_by_display_width() {
         let title = pane_border_title("1 模块组织（已定）", 12, false).unwrap();
@@ -1377,9 +1459,9 @@ mod tests {
         );
         let info = &infos[0];
 
-        assert_eq!(info.rect, area);
+        assert_eq!(info.rect, pad_single_pane(area));
         assert_eq!(info.scrollbar_rect, None);
-        assert_eq!(info.inner_rect, Rect::new(10, 3, 39, 8));
+        assert_eq!(info.inner_rect, Rect::new(11, 4, 37, 6));
     }
 
     #[tokio::test]
@@ -1406,9 +1488,9 @@ mod tests {
         );
         let info = &infos[0];
 
-        assert_eq!(info.rect, area);
+        assert_eq!(info.rect, pad_single_pane(area));
         assert_eq!(info.scrollbar_rect, None);
-        assert_eq!(info.inner_rect, Rect::new(10, 3, 39, 8));
+        assert_eq!(info.inner_rect, Rect::new(11, 4, 37, 6));
     }
 
     #[tokio::test]
@@ -1464,9 +1546,9 @@ mod tests {
         );
         let info = &infos[0];
 
-        assert_eq!(info.rect, area);
+        assert_eq!(info.rect, pad_single_pane(area));
         assert_eq!(info.scrollbar_rect, None);
-        assert_eq!(info.inner_rect, area);
+        assert_eq!(info.inner_rect, pad_single_pane(area));
     }
 
     #[tokio::test]
@@ -1497,9 +1579,9 @@ mod tests {
         );
         let info = &infos[0];
 
-        assert_eq!(info.rect, area);
-        assert_eq!(info.scrollbar_rect, Some(Rect::new(49, 3, 1, 8)));
-        assert_eq!(info.inner_rect, Rect::new(10, 3, 39, 8));
+        assert_eq!(info.rect, pad_single_pane(area));
+        assert_eq!(info.scrollbar_rect, Some(Rect::new(48, 4, 1, 6)));
+        assert_eq!(info.inner_rect, Rect::new(11, 4, 37, 6));
 
         app.pane_scrollbars = false;
         let infos = compute_pane_infos(
@@ -1511,9 +1593,9 @@ mod tests {
         );
         let info = &infos[0];
 
-        assert_eq!(info.rect, area);
+        assert_eq!(info.rect, pad_single_pane(area));
         assert_eq!(info.scrollbar_rect, None);
-        assert_eq!(info.inner_rect, area);
+        assert_eq!(info.inner_rect, pad_single_pane(area));
     }
 
     #[test]
